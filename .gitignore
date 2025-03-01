@@ -85,3 +85,5 @@ CMakeUserPresets.json
 
 build/*
 data/*
+
+*.bin
