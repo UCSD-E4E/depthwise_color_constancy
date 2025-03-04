@@ -29,10 +29,9 @@ void depthwiseColorConsistency(
 {
   int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
-  int depth_c = 3;
   int cent_d_idx = (y * width + x);
-  double eps = 0.0001;  
-  double exp_sum = eps;                                            
+  double eps = 10;  
+  double exp_sum = 0;                                            
   
   //TODO: Find better defintion for softmax
   // compute denom for softmax                       
@@ -42,7 +41,7 @@ void depthwiseColorConsistency(
           int ny = y + i;
 
           if (nx >= 0 && nx < width && ny >= 0 && ny < height) {                              
-              int idx_d = (ny * width + nx) * channels + depth_c;
+              int idx_d = (ny * width + nx);
               exp_sum += expf(-abs(depth[idx_d] - depth[cent_d_idx]) - eps); 
           }               
       }
@@ -53,7 +52,7 @@ void depthwiseColorConsistency(
 
   if (x < width && y < height) {
       // Apply avging to each color channels
-      for (int c = 0; c < channels - 1; c++) {  
+      for (int c = 0; c < channels; c++) {  
           int cent_c_idx = (y * width + x) * channels + c;  
           double avg_color = 0;                  
           
@@ -66,7 +65,7 @@ void depthwiseColorConsistency(
                   // $\sum_{n \in N} softmax(n) * color(n)
                   if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
                       int idx = (ny * width + nx) * channels + c;
-                      int idx_d = (ny * width + nx) * channels + depth_c;
+                      int idx_d = (ny * width + nx);
                       
                       //weight of the softmax by the color
                       double softmax_weight =  expf(-abs(depth[idx_d] - depth[cent_d_idx]) - eps)/exp_sum;
