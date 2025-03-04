@@ -30,11 +30,11 @@ void depthwiseColorConsistency(
   int x = blockIdx.x * blockDim.x + threadIdx.x;
   int y = blockIdx.y * blockDim.y + threadIdx.y;
   int depth_c = 3;
-  int cent_d_idx = (y * width + x) * channels + depth_c;
-  int cent_out_idx = (y * width + x);    
+  int cent_d_idx = (y * width + x);
   double eps = 0.0001;  
   double exp_sum = eps;                                            
   
+  //TODO: Find better defintion for softmax
   // compute denom for softmax                       
   for (int i = -1; i <= 1; i++) { // TODO generalize this
       for (int j = -1; j <= 1; j++) { //like with a footprint sys
@@ -43,7 +43,7 @@ void depthwiseColorConsistency(
 
           if (nx >= 0 && nx < width && ny >= 0 && ny < height) {                              
               int idx_d = (ny * width + nx) * channels + depth_c;
-              exp_sum += expf(-abs(ds[idx_d] - ds[cent_d_idx]) - eps); 
+              exp_sum += expf(-abs(depth[idx_d] - depth[cent_d_idx]) - eps); 
           }               
       }
   } 
@@ -69,7 +69,7 @@ void depthwiseColorConsistency(
                       int idx_d = (ny * width + nx) * channels + depth_c;
                       
                       //weight of the softmax by the color
-                      double softmax_weight =  expf(-abs(ds[idx_d] - ds[cent_d_idx]) - eps)/exp_sum;
+                      double softmax_weight =  expf(-abs(depth[idx_d] - depth[cent_d_idx]) - eps)/exp_sum;
                       avg_color += softmax_weight *  ds[idx]; 
                   }            
               }
@@ -81,32 +81,33 @@ void depthwiseColorConsistency(
 } 
 
 
-float* load_bin_files(const char* path, float * x, size_t element_size, size_t num_elements) {
+float* load_bin_files(const char* path, float ** x, size_t element_size, size_t num_elements) {
   FILE *file = fopen(path, "rb");
     if (!file) {
       perror("Failed to open file");
     }
+    //TODO Maloc then copy please
+    cudaMallocManaged(x, num_elements * element_size);
 
-    cudaMallocManaged(&x, num_elements * element_size);
-
-    fread(x, element_size, num_elements, file);
+    fread(*x, element_size, num_elements, file);
     fclose(file);
 
-    return x;
+    return *x;
 }
 
-double* load_bin_files(const char* path, double * x, size_t element_size, size_t num_elements) {
+double* load_bin_files(const char* path, double ** x, size_t element_size, size_t num_elements) {
   FILE *file = fopen(path, "rb");
     if (!file) {
       perror("Failed to open file");
     }
 
-    cudaMallocManaged(&x, num_elements * element_size);
+    //TODO Maloc then copy please
+    cudaMallocManaged(x, num_elements * element_size);
 
-    fread(x, element_size, num_elements, file);
+    fread(*x, element_size, num_elements, file);
     fclose(file);
 
-    return x;
+    return *x;
 }
 
 int main(void)
@@ -120,9 +121,9 @@ int main(void)
   // Init Memory
   float *lim, *depth;
   double *ds, *out;
-  lim = load_bin_files("data/T_S04923_lim.bin",lim, sizeof(float), image_size);
-  ds = load_bin_files("data/T_S04923_ds.bin", ds, sizeof(double), image_size);
-  depth = load_bin_files("data/T_S04923_depth.bin",depth, sizeof(float), 3830400); //should be image_size/3 but i'll handle that later
+  lim = load_bin_files("data/T_S04923_lim.bin",&lim, sizeof(float), image_size);
+  ds = load_bin_files("data/T_S04923_ds.bin", &ds, sizeof(double), image_size);
+  depth = load_bin_files("data/T_S04923_depth.bin",&depth, sizeof(float), 3830400); //should be image_size/3 but i'll handle that later
   cudaMallocManaged(&out, image_size * sizeof(double)); 
 
   //Debug: Intended to softly check to make sure the data is loading in correctly
