@@ -2,6 +2,8 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cuda_runtime.h>
+#include "cublas_v2.h"
 
 //https://developer.nvidia.com/blog/even-easier-introduction-cuda/
 //This is frist for setting my my enviroment correctly
@@ -130,22 +132,43 @@ int main(void)
   //   std::cout << lim[i] << std::endl;
   // }
   
-  // Conduct Depthwise Operation
   dim3 dimGrid(ceil(width/32), ceil(height/32));
   dim3 dimBlock(32, 32, 1); //Going based from textbook might be a better/more approiate size of block
-  depthwiseColorConsistency<<<dimGrid, dimBlock>>>(ds, out, depth, width, height, channels);
-  cudaDeviceSynchronize(); //According to https://developer.nvidia.com/blog/even-easier-introduction-cuda/, prevents async weridness
 
-  // Check for errors, based on https://developer.nvidia.com/blog/even-easier-introduction-cuda/
-  // here we are trying to see how close we are to the pytorch implmention for finding lim
-  float maxError = 0.0f;
-  for (int i = 0; i < image_size; i++)
-    maxError = fmax(maxError, fabs(out[i]-lim[i]));
-  std::cout << "Max error: " << maxError << std::endl;
-  // Update this techically is wrong
-  // out isn't the illumanite map, its a_c
-  // I'm rn testing this by making a new bin file for out
-  // Then bringing this back to python
+  //Gemm Convoltuon Implementation
+  cublasHandle_t handle; 
+  cublasCreate(&handle);
+
+  // Conduct Depthwise Operation
+  for (size_t i = 0; i < 10; i++) { 
+    depthwiseColorConsistency<<<dimGrid, dimBlock>>>(ds, out, depth, width, height, channels);
+    cudaDeviceSynchronize(); //According to https://developer.nvidia.com/blog/even-easier-introduction-cuda/, prevents async weridness
+
+    //https://stackoverflow.com/questions/56043539/cublassgemm-row-major-multiplication#:~:text=As%20you%20said%2C%20cuBLAS%20interprets,for%20the%20column%2Dmajor%20interpretation.
+    //According to here, we can just do the tranpose instead. I'm fine with that. 
+    // SO quick break down of the matrices
+    // Since we are doing B^TA^T in the background
+    // B =  a_c 
+    // A = softmax weights
+    // There are image_size number of things in a_c
+    double alpha = 0.1f;
+    double beta = 1.f - alpha;
+
+    cublasDgeam(handle, 
+      CUBLAS_OP_N, //Treat problem as B^T = a_c
+      CUBLAS_OP_N, //Treat problem as A^T = softmax weights
+      channels, //There are 3 channels columns things in a_c, and the output (remember transpose)
+      height * width,  //remember transpose 
+      &alpha,
+      out,
+      height * width,
+      &beta,
+      ds,
+      height * width,
+      out,
+      height * width
+    );
+  }
 
   //write the output for the new lim to test out!
   FILE* out_f = fopen("data/T_S04923_a_c.bin", "wb");
