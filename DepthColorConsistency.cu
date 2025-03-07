@@ -9,6 +9,13 @@
 //This is frist for setting my my enviroment correctly
 // test
 
+void checkCublas(cublasStatus_t result, const char* msg) {
+  if (result != CUBLAS_STATUS_SUCCESS) {
+      std::cerr << msg << std::endl;
+      exit(EXIT_FAILURE);
+  }
+}
+
 // Kernel function to add the elements of two arrays
   __global__
 void add(int n, float *x, float *y)
@@ -114,22 +121,32 @@ double* load_bin_files(const char* path, double ** x, size_t element_size, size_
 int main(void)
 {
   // image parameters
-  int image_size =  11491200; //number of pixels * number of channels
-  int width = 2400;
-  int height = 1596;
+ //number of pixels * number of channels
+
+  int iterations = 500; //200
+  double alpha = 0.99f; // 0.7
+  double beta = 1.f - alpha;
+
+  int width = 720;
+  int height = 1280;
   int channels = 3; //Ideally RGB for now
+  int num_pixels =  width * height * 3;
+  char * image_path = "data/realsense_tests/03_07_2024_projector_on_toolbox-color.bin";
+  char * depth_path = "data/realsense_tests/03_07_2024_projector_on_toolbox-depth.bin";
+  char * output_path = "data/realsense_tests/03_07_2024_projector_on_toolbox-lim-99-500.bin";
+  
 
   // Init Memory
-  float *lim, *depth;
-  double *ds, *out;
-  lim = load_bin_files("data/T_S04923_lim.bin",&lim, sizeof(float), image_size);
-  ds = load_bin_files("data/T_S04923_ds.bin", &ds, sizeof(double), image_size);
-  depth = load_bin_files("data/T_S04923_depth.bin",&depth, sizeof(float), 3830400); //should be image_size/3 but i'll handle that later
-  cudaMallocManaged(&out, image_size * sizeof(double)); 
+  float *depth;
+  double *ds, *a_c, *out;
+  ds = load_bin_files(image_path, &ds, sizeof(double), num_pixels);
+  a_c = load_bin_files(image_path, &ds, sizeof(double), num_pixels);
+  depth = load_bin_files(depth_path,&depth, sizeof(float), width * height); //should be image_size/3 but i'll handle that later
+  cudaMallocManaged(&out, num_pixels * sizeof(double)); 
 
   //Debug: Intended to softly check to make sure the data is loading in correctly
   // for (size_t i = 0; i < 10; i++) {
-  //   std::cout << lim[i] << std::endl;
+  //   std::cout << ds[i] << std::endl;
   // }
   
   dim3 dimGrid(ceil(width/32), ceil(height/32));
@@ -140,8 +157,8 @@ int main(void)
   cublasCreate(&handle);
 
   // Conduct Depthwise Operation
-  for (size_t i = 0; i < 10; i++) { 
-    depthwiseColorConsistency<<<dimGrid, dimBlock>>>(ds, out, depth, width, height, channels);
+  for (size_t i = 0; i < iterations; i++) { 
+    depthwiseColorConsistency<<<dimGrid, dimBlock>>>(a_c, out, depth, width, height, channels);
     cudaDeviceSynchronize(); //According to https://developer.nvidia.com/blog/even-easier-introduction-cuda/, prevents async weridness
 
     //https://stackoverflow.com/questions/56043539/cublassgemm-row-major-multiplication#:~:text=As%20you%20said%2C%20cuBLAS%20interprets,for%20the%20column%2Dmajor%20interpretation.
@@ -151,32 +168,32 @@ int main(void)
     // B =  a_c 
     // A = softmax weights
     // There are image_size number of things in a_c
-    double alpha = 0.1f;
-    double beta = 1.f - alpha;
+    // std::cout << "test output " << i << std::endl;
+    // for (size_t j = 0; j < 10; j++) {
+    //   std::cout << out[j] << std::endl;
+    // }
 
-    cublasDgeam(handle, 
-      CUBLAS_OP_N, //Treat problem as B^T = a_c
-      CUBLAS_OP_N, //Treat problem as A^T = softmax weights
-      channels, //There are 3 channels columns things in a_c, and the output (remember transpose)
-      height * width,  //remember transpose 
-      &alpha,
-      out,
-      height * width,
-      &beta,
-      ds,
-      height * width,
-      out,
-      height * width
-    );
+    checkCublas(cublasDgeam(
+      handle, CUBLAS_OP_N, CUBLAS_OP_N, 
+      channels, height * width,
+      &alpha, out, channels,
+      &beta, ds, channels,
+      a_c, channels
+    ), "geam issues");
+
+    cudaDeviceSynchronize();
+
+    // std::cout << "test output after geam " << i << std::endl;
+    // std::cout << out[0] << std::endl;
   }
 
   //write the output for the new lim to test out!
-  FILE* out_f = fopen("data/T_S04923_a_c.bin", "wb");
-  fwrite(out, sizeof(double), image_size, out_f);
+  FILE* out_f = fopen(output_path, "wb");
+  fwrite(out, sizeof(double), num_pixels, out_f);
   fclose(out_f);
 
   // Free memory
-  cudaFree(lim);
+  cublasDestroy(handle);
   cudaFree(ds);
   cudaFree(depth);
   cudaFree(out);

@@ -22,6 +22,7 @@ dependencies = [
     { name = "numpy" },
     { name = "opencv-python" },
     { name = "pillow" },
+    { name = "pyrealsense2" },
     { name = "scipy" },
     { name = "torch", version = "2.6.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
     { name = "torch", version = "2.6.0+cu126", source = { registry = "https://download.pytorch.org/whl/cu126" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
@@ -34,6 +35,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.2.3" },
     { name = "opencv-python", specifier = ">=4.11.0.86" },
     { name = "pillow", specifier = ">=11.1.0" },
+    { name = "pyrealsense2", specifier = ">=2.55.1.6486" },
     { name = "scipy", specifier = ">=1.15.2" },
     { name = "torch", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = ">=2.6.0" },
     { name = "torch", marker = "sys_platform == 'linux' or sys_platform == 'win32'", specifier = ">=2.6.0", index = "https://download.pytorch.org/whl/cu126" },
@@ -804,6 +806,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/8b/1a/3544f4f299a47911c2ab3710f534e52fea62a633c96806995da5d25be4b2/pyparsing-3.2.1.tar.gz", hash = "sha256:61980854fd66de3a90028d679a954d5f2623e83144b5afe5ee86f43d762e5f0a", size = 1067694 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1c/a7/c8a2d361bf89c0d9577c934ebb7421b25dc84bf3a8e3ac0a40aed9acc547/pyparsing-3.2.1-py3-none-any.whl", hash = "sha256:506ff4f4386c4cec0590ec19e6302d3aedb992fdc02c761e90416f158dacf8e1", size = 107716 },
+]
+
+[[package]]
+name = "pyrealsense2"
+version = "2.55.1.6486"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1e/8b/208170a2bd1c7899b01f57ac4bd1d67436735056f77b7941cb133621c4dc/pyrealsense2-2.55.1.6486-cp311-cp311-manylinux1_x86_64.whl", hash = "sha256:178f92caec6e8e212a7ced66c678dec47462b0b77e929fa576d02eea297bb177", size = 3453751 },
+    { url = "https://files.pythonhosted.org/packages/43/0a/f30f3030b59feadbb62b1400475516e800b934623bbbb8092feb0bb2335d/pyrealsense2-2.55.1.6486-cp311-cp311-win_amd64.whl", hash = "sha256:e01939a63bac3e1a4da742f7e1dbc618a4ec03ee0f7b3690ae5d1ad0c983aca8", size = 2781943 },
 ]
 
 [[package]]
