@@ -123,17 +123,17 @@ int main(void)
   // image parameters
  //number of pixels * number of channels
 
-  int iterations = 500; //200
+  int iterations = 2000; //200
   double alpha = 0.99f; // 0.7
   double beta = 1.f - alpha;
 
-  int width = 720;
-  int height = 1280;
+  int width = 640; //480,640
+  int height = 480;
   int channels = 3; //Ideally RGB for now
   int num_pixels =  width * height * 3;
-  char * image_path = "data/realsense_tests/03_07_2024_projector_on_toolbox-color.bin";
-  char * depth_path = "data/realsense_tests/03_07_2024_projector_on_toolbox-depth.bin";
-  char * output_path = "data/realsense_tests/03_07_2024_projector_on_toolbox-lim-99-500.bin";
+  char * image_path = "data/realsense_tests/living_room_0046b_out_1-color.bin";
+  char * depth_path = "data/realsense_tests/living_room_0046b_out_1-depth.bin";
+  char * output_path = "data/realsense_tests/living_room_0046b_out_1-lim-99-500.bin";
   
 
   // Init Memory
@@ -163,15 +163,8 @@ int main(void)
 
     //https://stackoverflow.com/questions/56043539/cublassgemm-row-major-multiplication#:~:text=As%20you%20said%2C%20cuBLAS%20interprets,for%20the%20column%2Dmajor%20interpretation.
     //According to here, we can just do the tranpose instead. I'm fine with that. 
-    // SO quick break down of the matrices
-    // Since we are doing B^TA^T in the background
-    // B =  a_c 
-    // A = softmax weights
-    // There are image_size number of things in a_c
-    // std::cout << "test output " << i << std::endl;
-    // for (size_t j = 0; j < 10; j++) {
-    //   std::cout << out[j] << std::endl;
-    // }
+    // std::cout << "test output before geam " << i << std::endl;
+    // std::cout << a_c[0] << std::endl;
 
     checkCublas(cublasDgeam(
       handle, CUBLAS_OP_N, CUBLAS_OP_N, 
@@ -184,7 +177,7 @@ int main(void)
     cudaDeviceSynchronize();
 
     // std::cout << "test output after geam " << i << std::endl;
-    // std::cout << out[0] << std::endl;
+    // std::cout << a_c[0] << std::endl;
   }
 
   //write the output for the new lim to test out!
