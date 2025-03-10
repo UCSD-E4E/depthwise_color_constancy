@@ -89,33 +89,41 @@ void depthwiseColorConsistency(
 } 
 
 
-float* load_bin_files(const char* path, float ** x, size_t element_size, size_t num_elements) {
+float* load_bin_files(const char* path, float ** d_x, size_t element_size, size_t num_elements) {
   FILE *file = fopen(path, "rb");
     if (!file) {
       perror("Failed to open file");
     }
-    //TODO Maloc then copy please
-    cudaMallocManaged(x, num_elements * element_size);
 
-    fread(*x, element_size, num_elements, file);
+    float *h_temp = (float*)malloc(num_elements * element_size);
+    cudaMalloc(d_x, num_elements * element_size);
+
+    fread(h_temp, element_size, num_elements, file);
+
+    cudaMemcpy(*d_x, h_temp, num_elements * element_size, cudaMemcpyHostToDevice);
+    free(h_temp);
     fclose(file);
 
-    return *x;
+    return *d_x;
 }
 
-double* load_bin_files(const char* path, double ** x, size_t element_size, size_t num_elements) {
+double* load_bin_files(const char* path, double ** d_x, size_t element_size, size_t num_elements) {
   FILE *file = fopen(path, "rb");
     if (!file) {
       perror("Failed to open file");
     }
 
-    //TODO Maloc then copy please
-    cudaMallocManaged(x, num_elements * element_size);
+    double *h_temp = (double*)malloc(num_elements * element_size);
+    fread(h_temp, element_size, num_elements, file);
+    // std::cout << "test data file load "<< std::endl;
+    // std::cout << h_temp[0] << std::endl;
 
-    fread(*x, element_size, num_elements, file);
+    cudaMalloc(d_x, num_elements * element_size);
+    cudaMemcpy(*d_x, h_temp, num_elements * element_size, cudaMemcpyHostToDevice);
+    free(h_temp);
     fclose(file);
 
-    return *x;
+    return *d_x;
 }
 
 int main(void)
@@ -138,15 +146,18 @@ int main(void)
 
   // Init Memory
   float *depth;
-  double *ds, *a_c, *out;
+  double *ds, *a_c, *d_out;
   ds = load_bin_files(image_path, &ds, sizeof(double), num_pixels);
   a_c = load_bin_files(image_path, &ds, sizeof(double), num_pixels);
   depth = load_bin_files(depth_path,&depth, sizeof(float), width * height); //should be image_size/3 but i'll handle that later
-  cudaMallocManaged(&out, num_pixels * sizeof(double)); 
-
-  //Debug: Intended to softly check to make sure the data is loading in correctly
+  
+  double *h_out = (double*)malloc(num_pixels * sizeof(double));
+  cudaMalloc(&d_out, num_pixels * sizeof(double));
+  
+  // //Debug: Intended to softly check to make sure the data is loading in correctly
+  // cudaMemcpy(h_out, a_c, num_pixels * sizeof(double), cudaMemcpyDeviceToHost);
   // for (size_t i = 0; i < 10; i++) {
-  //   std::cout << ds[i] << std::endl;
+  //   std::cout << h_out[i] << std::endl;
   // }
   
   dim3 dimGrid(ceil(width/32), ceil(height/32));
@@ -158,9 +169,7 @@ int main(void)
 
   // Conduct Depthwise Operation
   for (size_t i = 0; i < iterations; i++) { 
-    depthwiseColorConsistency<<<dimGrid, dimBlock>>>(a_c, out, depth, width, height, channels);
-    cudaDeviceSynchronize(); //According to https://developer.nvidia.com/blog/even-easier-introduction-cuda/, prevents async weridness
-
+    depthwiseColorConsistency<<<dimGrid, dimBlock>>>(a_c, d_out, depth, width, height, channels);
     //https://stackoverflow.com/questions/56043539/cublassgemm-row-major-multiplication#:~:text=As%20you%20said%2C%20cuBLAS%20interprets,for%20the%20column%2Dmajor%20interpretation.
     //According to here, we can just do the tranpose instead. I'm fine with that. 
     // std::cout << "test output before geam " << i << std::endl;
@@ -169,27 +178,28 @@ int main(void)
     checkCublas(cublasDgeam(
       handle, CUBLAS_OP_N, CUBLAS_OP_N, 
       channels, height * width,
-      &alpha, out, channels,
+      &alpha, d_out, channels,
       &beta, ds, channels,
       a_c, channels
     ), "geam issues");
-
-    cudaDeviceSynchronize();
-
     // std::cout << "test output after geam " << i << std::endl;
     // std::cout << a_c[0] << std::endl;
   }
 
+  cudaDeviceSynchronize();
   //write the output for the new lim to test out!
   FILE* out_f = fopen(output_path, "wb");
-  fwrite(out, sizeof(double), num_pixels, out_f);
+  cudaMemcpy(h_out, d_out, num_pixels * sizeof(double), cudaMemcpyDeviceToHost);
+  fwrite(h_out, sizeof(double), num_pixels, out_f);
+  
   fclose(out_f);
 
   // Free memory
   cublasDestroy(handle);
   cudaFree(ds);
   cudaFree(depth);
-  cudaFree(out);
+  cudaFree(d_out);
+  free(h_out);
   
   return 0;
 }
