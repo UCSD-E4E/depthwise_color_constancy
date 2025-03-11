@@ -131,7 +131,7 @@ int main(void)
   // image parameters
  //number of pixels * number of channels
 
-  int iterations = 2000; //200
+  int iterations = 100; //200
   double alpha = 0.99f; // 0.7
   double beta = 1.f - alpha;
 
@@ -199,6 +199,7 @@ int main(void)
   cudaFree(ds);
   cudaFree(depth);
   cudaFree(d_out);
+  cudaFree(a_c);
   free(h_out);
   
   return 0;
