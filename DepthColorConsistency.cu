@@ -114,41 +114,18 @@ void depthwiseColorConsistency(
 } 
 
 
-float* load_bin_files(const char* path, float ** d_x, size_t element_size, size_t num_elements) {
+float* load_bin_files(const char* path, size_t element_size, size_t num_elements) {
   FILE *file = fopen(path, "rb");
     if (!file) {
       perror("Failed to open file");
     }
 
     float *h_temp = (float*)malloc(num_elements * element_size);
-    cudaMalloc(d_x, num_elements * element_size);
 
     fread(h_temp, element_size, num_elements, file);
-
-    cudaMemcpy(*d_x, h_temp, num_elements * element_size, cudaMemcpyHostToDevice);
-    free(h_temp);
     fclose(file);
 
-    return *d_x;
-}
-
-double* load_bin_files(const char* path, double ** d_x, size_t element_size, size_t num_elements) {
-  FILE *file = fopen(path, "rb");
-    if (!file) {
-      perror("Failed to open file");
-    }
-
-    double *h_temp = (double*)malloc(num_elements * element_size);
-    fread(h_temp, element_size, num_elements, file);
-    // std::cout << "test data file load "<< std::endl;
-    // std::cout << h_temp[0] << std::endl;
-
-    cudaMalloc(d_x, num_elements * element_size);
-    cudaMemcpy(*d_x, h_temp, num_elements * element_size, cudaMemcpyHostToDevice);
-    free(h_temp);
-    fclose(file);
-
-    return *d_x;
+    return h_temp;
 }
 
 int main(void)
@@ -171,12 +148,23 @@ int main(void)
 
   // Init Memory
   float *depth, *ds, *a_c, *d_out;
-  ds = load_bin_files(image_path, &ds, sizeof(float), num_pixels);
-  a_c = load_bin_files(image_path, &ds, sizeof(float), num_pixels);
-  depth = load_bin_files(depth_path,&depth, sizeof(float), width * height); //should be image_size/3 but i'll handle that later
+  float * h_ds = load_bin_files(image_path, sizeof(float), num_pixels);
+  float * h_depth = load_bin_files(depth_path, sizeof(float), width * height); //should be image_size/3 but i'll handle that later
   
+  cudaMalloc(&ds, num_pixels * sizeof(float));
+  cudaMemcpy(ds, h_ds, num_pixels * sizeof(float), cudaMemcpyHostToDevice);
+
+  cudaMalloc(&depth, width * height * sizeof(float));
+  cudaMemcpy(depth, h_depth, width * height * sizeof(float), cudaMemcpyHostToDevice);
+
+  cudaMalloc(&a_c, num_pixels * sizeof(float));
+  cudaMemcpy(a_c, h_ds, num_pixels * sizeof(float), cudaMemcpyHostToDevice);
+
   float *h_out = (float*)malloc(num_pixels * sizeof(float));
   cudaMalloc(&d_out, num_pixels * sizeof(float));
+
+  free(h_ds);
+  free(h_depth);
   
   // //Debug: Intended to softly check to make sure the data is loading in correctly
   // cudaMemcpy(h_out, a_c, num_pixels * sizeof(double), cudaMemcpyDeviceToHost);
@@ -213,8 +201,8 @@ int main(void)
   cudaDeviceSynchronize();
   //write the output for the new lim to test out!
   FILE* out_f = fopen(output_path, "wb");
-  cudaMemcpy(h_out, a_c, num_pixels * sizeof(double), cudaMemcpyDeviceToHost);
-  fwrite(h_out, sizeof(double), num_pixels, out_f);
+  cudaMemcpy(h_out, a_c, num_pixels * sizeof(float), cudaMemcpyDeviceToHost);
+  fwrite(h_out, sizeof(float), num_pixels, out_f);
   
   fclose(out_f);
 
