@@ -213,8 +213,8 @@ int main(void)
   cudaDeviceSynchronize();
   //write the output for the new lim to test out!
   FILE* out_f = fopen(output_path, "wb");
-  cudaMemcpy(h_out, a_c, num_pixels * sizeof(double), cudaMemcpyDeviceToHost);
-  fwrite(h_out, sizeof(double), num_pixels, out_f);
+  cudaMemcpy(h_out, a_c, num_pixels * sizeof(float), cudaMemcpyDeviceToHost);
+  fwrite(h_out, sizeof(float), num_pixels, out_f);
   
   fclose(out_f);
 
