@@ -196,8 +196,8 @@ int main(void)
   // image parameters
  //number of pixels * number of channels
 
-  int iterations = 200;
-  float alpha = 0.99f;
+  int iterations = 1000;
+  float alpha = 0.9999f;
 
   int width = 640; //480,640
   int height = 480;
@@ -205,7 +205,7 @@ int main(void)
   int num_pixels =  width * height * channels;
   char * image_path = "data/realsense_tests/living_room_0046b_out_1-color.bin";
   char * depth_path = "data/realsense_tests/living_room_0046b_out_1-depth.bin";
-  char * output_path = "data/realsense_tests/living_room_0046b_out_1-lim-99-500.bin";
+  char * output_path = "data/realsense_tests/living_room_0046b_out_1-lim.bin";
   
 
   // Init Memory
