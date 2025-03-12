@@ -31,8 +31,8 @@ void add(int n, float *x, float *y)
 
 __global__
 void depthwiseColorConsistency(
-  double * ds,
-  double * output,
+  float * ds,
+  float * output,
   float * depth,
   int width, 
   int height, 
@@ -156,9 +156,9 @@ int main(void)
   // image parameters
  //number of pixels * number of channels
 
-  int iterations = 500;
-  double alpha = 0.99f;
-  double beta = 1.f - alpha;
+  int iterations = 2000;
+  float alpha = 0.99f;
+  float beta = 1.f - alpha;
 
   int width = 640; //480,640
   int height = 480;
@@ -170,14 +170,13 @@ int main(void)
   
 
   // Init Memory
-  float *depth;
-  double *ds, *a_c, *d_out;
-  ds = load_bin_files(image_path, &ds, sizeof(double), num_pixels);
-  a_c = load_bin_files(image_path, &ds, sizeof(double), num_pixels);
+  float *depth, *ds, *a_c, *d_out;
+  ds = load_bin_files(image_path, &ds, sizeof(float), num_pixels);
+  a_c = load_bin_files(image_path, &ds, sizeof(float), num_pixels);
   depth = load_bin_files(depth_path,&depth, sizeof(float), width * height); //should be image_size/3 but i'll handle that later
   
-  double *h_out = (double*)malloc(num_pixels * sizeof(double));
-  cudaMalloc(&d_out, num_pixels * sizeof(double));
+  float *h_out = (float*)malloc(num_pixels * sizeof(float));
+  cudaMalloc(&d_out, num_pixels * sizeof(float));
   
   // //Debug: Intended to softly check to make sure the data is loading in correctly
   // cudaMemcpy(h_out, a_c, num_pixels * sizeof(double), cudaMemcpyDeviceToHost);
@@ -185,7 +184,7 @@ int main(void)
   //   std::cout << h_out[i] << std::endl;
   // }
   
-  dim3 dimGrid(ceil((width + IN_TILE_WIDTH)/IN_TILE_WIDTH) + 10, ceil((height + IN_TILE_WIDTH)/IN_TILE_WIDTH) + 10);
+  dim3 dimGrid(ceil((width + IN_TILE_WIDTH)/IN_TILE_WIDTH) + 10, ceil((height + IN_TILE_WIDTH + 1)/IN_TILE_WIDTH) + 10);
   dim3 dimBlock(IN_TILE_WIDTH, IN_TILE_WIDTH); //Going based from textbook might be a better/more approiate size of block
 
   //Gemm Convoltuon Implementation
@@ -200,7 +199,7 @@ int main(void)
     // std::cout << "test output before geam after depthwise " << i << std::endl;
     // std::cout << d_out[0] << std::endl;
 
-    checkCublas(cublasDgeam(
+    checkCublas(cublasSgeam(
       handle, CUBLAS_OP_N, CUBLAS_OP_N, 
       channels, height * width,
       &alpha, d_out, channels,
