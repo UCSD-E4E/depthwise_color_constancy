@@ -128,6 +128,12 @@ float* load_bin_files(const char* path, size_t element_size, size_t num_elements
     return h_temp;
 }
 
+float* loadGPUMem(float ** d_x, float ** h_x, int num_elements, int element_size) {
+  cudaMalloc(d_x, num_elements * element_size);
+  cudaMemcpy(*d_x, *h_x, num_elements * element_size, cudaMemcpyHostToDevice);
+  return *d_x;
+}
+
 int main(void)
 {
   // image parameters
@@ -143,7 +149,7 @@ int main(void)
   int num_pixels =  width * height * 3;
   char * image_path = "data/realsense_tests/living_room_0046b_out_1-color.bin";
   char * depth_path = "data/realsense_tests/living_room_0046b_out_1-depth.bin";
-  char * output_path = "data/realsense_tests/living_room_0046b_out_1-lim-99-500.bin";
+  char * output_path = "data/realsense_tests/living_room_0046b_out_1-lim.bin";
   
 
   // Init Memory
@@ -151,20 +157,15 @@ int main(void)
   float * h_ds = load_bin_files(image_path, sizeof(float), num_pixels);
   float * h_depth = load_bin_files(depth_path, sizeof(float), width * height); //should be image_size/3 but i'll handle that later
   
-  cudaMalloc(&ds, num_pixels * sizeof(float));
-  cudaMemcpy(ds, h_ds, num_pixels * sizeof(float), cudaMemcpyHostToDevice);
-
-  cudaMalloc(&depth, width * height * sizeof(float));
-  cudaMemcpy(depth, h_depth, width * height * sizeof(float), cudaMemcpyHostToDevice);
-
-  cudaMalloc(&a_c, num_pixels * sizeof(float));
-  cudaMemcpy(a_c, h_ds, num_pixels * sizeof(float), cudaMemcpyHostToDevice);
-
-  float *h_out = (float*)malloc(num_pixels * sizeof(float));
+  ds = loadGPUMem(&ds, &h_ds, num_pixels, sizeof(float));
+  a_c = loadGPUMem(&a_c, &h_ds, num_pixels, sizeof(float));
+  depth = loadGPUMem(&depth, &h_depth, width * height, sizeof(float));
   cudaMalloc(&d_out, num_pixels * sizeof(float));
 
   free(h_ds);
   free(h_depth);
+
+  float *h_out = (float*)malloc(num_pixels * sizeof(float));
   
   // //Debug: Intended to softly check to make sure the data is loading in correctly
   // cudaMemcpy(h_out, a_c, num_pixels * sizeof(double), cudaMemcpyDeviceToHost);
