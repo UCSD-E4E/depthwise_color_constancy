@@ -1,8 +1,8 @@
 run: build
-	./build/accl.exe
+	./build/accl
 
 build: DepthColorConsistency.cu
-	nvcc -g -lcublas -o ./build/accl .\DepthColorConsistency.cu
+	nvcc -g -lcublas -o ./build/accl DepthColorConsistency.cu
 
 clean:
 	del ./build/*
