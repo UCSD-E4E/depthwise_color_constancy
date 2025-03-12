@@ -8,29 +8,9 @@
 #define IN_TILE_WIDTH 32   
 #define KERNEL_SIZE 1      
 #define OUT_TILE_WIDTH (IN_TILE_WIDTH - 2 * KERNEL_SIZE)  
-//https://developer.nvidia.com/blog/even-easier-introduction-cuda/
-//This is frist for setting my my enviroment correctly
-// test
-
-void checkCublas(cublasStatus_t result, const char* msg) {
-  if (result != CUBLAS_STATUS_SUCCESS) {
-      std::cerr << msg << std::endl;
-      exit(EXIT_FAILURE);
-  }
-}
-
-// Kernel function to add the elements of two arrays
-  __global__
-void add(int n, float *x, float *y)
-{
-  int index = blockIdx.x * blockDim.x + threadIdx.x;
-  int stride = blockDim.x * gridDim.x;
-  for (int i = index; i < n; i += stride)
-    y[i] = x[i] + y[i];
-}
 
 __global__
-void depthwiseColorConsistency(
+void softmaxDepthAdverging(
   float * ds,
   float * output,
   float * depth,
@@ -114,41 +94,101 @@ void depthwiseColorConsistency(
 } 
 
 
-float* load_bin_files(const char* path, float ** d_x, size_t element_size, size_t num_elements) {
+float* load_bin_files(const char* path, size_t element_size, size_t num_elements) {
   FILE *file = fopen(path, "rb");
-    if (!file) {
-      perror("Failed to open file");
-    }
+  if (!file) {
+    perror("Failed to open file");
+  }
 
-    float *h_temp = (float*)malloc(num_elements * element_size);
-    cudaMalloc(d_x, num_elements * element_size);
+  float *h_temp = (float*)malloc(num_elements * element_size);
+  fread(h_temp, element_size, num_elements, file);
+  fclose(file);
 
-    fread(h_temp, element_size, num_elements, file);
-
-    cudaMemcpy(*d_x, h_temp, num_elements * element_size, cudaMemcpyHostToDevice);
-    free(h_temp);
-    fclose(file);
-
-    return *d_x;
+  return h_temp;
 }
 
-double* load_bin_files(const char* path, double ** d_x, size_t element_size, size_t num_elements) {
-  FILE *file = fopen(path, "rb");
-    if (!file) {
-      perror("Failed to open file");
-    }
+float * depthwiseColorConsistency(
+  int iterations,
+  int image_width,
+  int image_height,
+  int image_num_channels,
+  float alpha,
+  float *  h_depth_map_ptr,
+  float *  h_image_ptr
+) 
+{
+  float *d_depth_map_ptr, *d_in_image_ptr, *d_temp_ptr, *d_a_c_ptr;
+  float beta = 1.f - alpha;
+  int num_pixels =  image_width * image_height * image_num_channels;
+  int depth_size =  image_width * image_height;
 
-    double *h_temp = (double*)malloc(num_elements * element_size);
-    fread(h_temp, element_size, num_elements, file);
-    // std::cout << "test data file load "<< std::endl;
-    // std::cout << h_temp[0] << std::endl;
+  //depth map of image
+  cudaMalloc(&d_depth_map_ptr, depth_size * sizeof(float));
+  cudaMemcpy(d_depth_map_ptr, h_depth_map_ptr, depth_size * sizeof(float), cudaMemcpyHostToDevice);
+  
+  //original image, needs to be kept to keep a_c stable each iteration
+  cudaMalloc(&d_in_image_ptr, num_pixels * sizeof(float));
+  cudaMemcpy(d_in_image_ptr, h_image_ptr, num_pixels * sizeof(float), cudaMemcpyHostToDevice);
 
-    cudaMalloc(d_x, num_elements * element_size);
-    cudaMemcpy(*d_x, h_temp, num_elements * element_size, cudaMemcpyHostToDevice);
-    free(h_temp);
-    fclose(file);
+  //a_c is the avged color image each iteration, starts with original image
+  cudaMalloc(&d_a_c_ptr, num_pixels * sizeof(float));
+  cudaMemcpy(d_a_c_ptr, h_image_ptr, num_pixels * sizeof(float), cudaMemcpyHostToDevice);
+  
+  //temp image for holding raw illumiant map
+  cudaMalloc(&d_temp_ptr, num_pixels * sizeof(float));
 
-    return *d_x;
+  // +10 is a workaround for this missing a column
+  // TODO fix this workaround
+  dim3 dimGrid(
+    ceil((image_width + IN_TILE_WIDTH)/IN_TILE_WIDTH) + 10, 
+    ceil((image_height + IN_TILE_WIDTH)/IN_TILE_WIDTH) + 10
+  );
+  dim3 dimBlock(IN_TILE_WIDTH, IN_TILE_WIDTH);
+
+  //cublas handlers
+  cublasHandle_t handle; 
+  cublasCreate(&handle);
+
+  // Conduct Depthwise Operation
+  for (size_t i = 0; i < iterations; i++) { 
+    softmaxDepthAdverging<<<dimGrid, dimBlock>>>(
+      d_a_c_ptr, d_temp_ptr, d_depth_map_ptr, 
+      image_width, image_height, image_num_channels);
+    
+      //https://stackoverflow.com/questions/56043539/cublassgemm-row-major-multiplication#:~:text=As%20you%20said%2C%20cuBLAS%20interprets,for%20the%20column%2Dmajor%20interpretation.
+    //According to here, we can just do the tranpose instead. I'm fine with that. 
+    cublasSgeam(
+      handle, CUBLAS_OP_N, CUBLAS_OP_N, 
+      image_num_channels, image_height * image_width,
+      &alpha, d_temp_ptr, image_num_channels,
+      &beta, d_in_image_ptr, image_num_channels,
+      d_a_c_ptr, image_num_channels
+    );
+  }
+
+  cudaDeviceSynchronize();
+  
+  //write the output for the new lim to test out!
+  float *h_out = (float*)malloc(num_pixels * sizeof(float));
+  cudaMemcpy(h_out, d_a_c_ptr, num_pixels * sizeof(float), cudaMemcpyDeviceToHost);
+
+  // Free memory
+  cublasDestroy(handle);
+  cudaFree(d_in_image_ptr);
+  cudaFree(d_depth_map_ptr);
+  cudaFree(d_temp_ptr);
+  cudaFree(d_a_c_ptr);
+  return h_out;
+}
+
+//for python freeing
+void free_array(float* arr) {
+  free(arr);
+}
+
+//for python freeing
+void free_array(double* arr) {
+  free(arr);
 }
 
 int main(void)
@@ -156,75 +196,40 @@ int main(void)
   // image parameters
  //number of pixels * number of channels
 
-  int iterations = 2000;
+  int iterations = 200;
   float alpha = 0.99f;
-  float beta = 1.f - alpha;
 
   int width = 640; //480,640
   int height = 480;
   int channels = 3; //Ideally RGB for now
-  int num_pixels =  width * height * 3;
+  int num_pixels =  width * height * channels;
   char * image_path = "data/realsense_tests/living_room_0046b_out_1-color.bin";
   char * depth_path = "data/realsense_tests/living_room_0046b_out_1-depth.bin";
   char * output_path = "data/realsense_tests/living_room_0046b_out_1-lim-99-500.bin";
   
 
   // Init Memory
-  float *depth, *ds, *a_c, *d_out;
-  ds = load_bin_files(image_path, &ds, sizeof(float), num_pixels);
-  a_c = load_bin_files(image_path, &ds, sizeof(float), num_pixels);
-  depth = load_bin_files(depth_path,&depth, sizeof(float), width * height); //should be image_size/3 but i'll handle that later
+  float *depth, *ds;
+  ds = load_bin_files(image_path, sizeof(float), num_pixels);
+  depth = load_bin_files(depth_path, sizeof(float), width * height);
   
-  float *h_out = (float*)malloc(num_pixels * sizeof(float));
-  cudaMalloc(&d_out, num_pixels * sizeof(float));
-  
-  // //Debug: Intended to softly check to make sure the data is loading in correctly
-  // cudaMemcpy(h_out, a_c, num_pixels * sizeof(double), cudaMemcpyDeviceToHost);
-  // for (size_t i = 0; i < 10; i++) {
-  //   std::cout << h_out[i] << std::endl;
-  // }
-  
-  dim3 dimGrid(ceil((width + IN_TILE_WIDTH)/IN_TILE_WIDTH) + 10, ceil((height + IN_TILE_WIDTH + 1)/IN_TILE_WIDTH) + 10);
-  dim3 dimBlock(IN_TILE_WIDTH, IN_TILE_WIDTH); //Going based from textbook might be a better/more approiate size of block
+  float* h_out = depthwiseColorConsistency(
+    iterations,
+    width,
+    height,
+    channels,
+    alpha,
+    depth,
+    ds
+  );
 
-  //Gemm Convoltuon Implementation
-  cublasHandle_t handle; 
-  cublasCreate(&handle);
-
-  // Conduct Depthwise Operation
-  for (size_t i = 0; i < iterations; i++) { 
-    depthwiseColorConsistency<<<dimGrid, dimBlock>>>(a_c, d_out, depth, width, height, channels);
-    //https://stackoverflow.com/questions/56043539/cublassgemm-row-major-multiplication#:~:text=As%20you%20said%2C%20cuBLAS%20interprets,for%20the%20column%2Dmajor%20interpretation.
-    //According to here, we can just do the tranpose instead. I'm fine with that. 
-    // std::cout << "test output before geam after depthwise " << i << std::endl;
-    // std::cout << d_out[0] << std::endl;
-
-    checkCublas(cublasSgeam(
-      handle, CUBLAS_OP_N, CUBLAS_OP_N, 
-      channels, height * width,
-      &alpha, d_out, channels,
-      &beta, ds, channels,
-      a_c, channels
-    ), "geam issues");
-    // std::cout << "test output after geam " << i << std::endl;
-    // std::cout << a_c[0] << std::endl;
-  }
-
-  cudaDeviceSynchronize();
-  //write the output for the new lim to test out!
   FILE* out_f = fopen(output_path, "wb");
-  cudaMemcpy(h_out, a_c, num_pixels * sizeof(double), cudaMemcpyDeviceToHost);
-  fwrite(h_out, sizeof(double), num_pixels, out_f);
-  
+  fwrite(h_out, sizeof(float), num_pixels, out_f);
   fclose(out_f);
-
-  // Free memory
-  cublasDestroy(handle);
-  cudaFree(ds);
-  cudaFree(depth);
-  cudaFree(d_out);
-  cudaFree(a_c);
+  
   free(h_out);
+  free(ds);
+  free(depth);
   
   return 0;
 }
