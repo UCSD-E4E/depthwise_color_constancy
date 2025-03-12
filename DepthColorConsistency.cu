@@ -114,23 +114,57 @@ void depthwiseColorConsistency(
 } 
 
 
-float* load_bin_files(const char* path, size_t element_size, size_t num_elements) {
+float* load_bin_files(const char* path, float ** d_x, size_t element_size, size_t num_elements) {
   FILE *file = fopen(path, "rb");
     if (!file) {
       perror("Failed to open file");
     }
 
     float *h_temp = (float*)malloc(num_elements * element_size);
+    cudaMalloc(d_x, num_elements * element_size);
 
     fread(h_temp, element_size, num_elements, file);
+
+    cudaMemcpy(*d_x, h_temp, num_elements * element_size, cudaMemcpyHostToDevice);
+    free(h_temp);
     fclose(file);
 
-    return h_temp;
+    return *d_x;
 }
 
-float* loadGPUMem(float ** d_x, float ** h_x, int num_elements, int element_size) {
-  cudaMalloc(d_x, num_elements * element_size);
-  cudaMemcpy(*d_x, *h_x, num_elements * element_size, cudaMemcpyHostToDevice);
+double* load_bin_files(const char* path, double ** d_x, size_t element_size, size_t num_elements) {
+    FILE *file = fopen(path, "rb");
+    if (!file) {
+      perror("Failed to open file");
+    }
+
+    double *h_temp = (double*)malloc(num_elements * element_size);
+    fread(h_temp, element_size, num_elements, file);
+    // std::cout << "test data file load "<< std::endl;
+    // std::cout << h_temp[0] << std::endl;
+
+    cudaMalloc(d_x, num_elements * element_size);
+    cudaMemcpy(*d_x, h_temp, num_elements * element_size, cudaMemcpyHostToDevice);
+    free(h_temp);
+    fclose(file);
+
+    return *d_x;
+}
+
+float * getFile(char * image_path, int num_pixels) {
+  FILE *file2 = fopen(image_path, "rb");
+  if (!file2) {
+    perror("Failed to open file");
+  }
+  float* h_temp1 = (float*)malloc(num_pixels * sizeof(float));
+  fread(h_temp1, sizeof(float), num_pixels, file2);
+  fclose(file2);
+  return h_temp1;
+}
+
+float * getCUDAMem(float ** d_x, float ** d_y, int size) {
+  cudaMalloc(d_x, size * sizeof(float));
+  cudaMemcpy(*d_x, *d_y, size * sizeof(float), cudaMemcpyDeviceToDevice);
   return *d_x;
 }
 
@@ -140,7 +174,7 @@ int main(void)
  //number of pixels * number of channels
 
   int iterations = 2000;
-  float alpha = 0.99f;
+  float alpha = 0.9999f;
   float beta = 1.f - alpha;
 
   int width = 640; //480,640
@@ -154,18 +188,19 @@ int main(void)
 
   // Init Memory
   float *depth, *ds, *a_c, *d_out;
-  float * h_ds = load_bin_files(image_path, sizeof(float), num_pixels);
-  float * h_depth = load_bin_files(depth_path, sizeof(float), width * height); //should be image_size/3 but i'll handle that later
+  ds = load_bin_files(image_path, &ds, sizeof(float), num_pixels);
   
-  ds = loadGPUMem(&ds, &h_ds, num_pixels, sizeof(float));
-  a_c = loadGPUMem(&a_c, &h_ds, num_pixels, sizeof(float));
-  depth = loadGPUMem(&depth, &h_depth, width * height, sizeof(float));
-  cudaMalloc(&d_out, num_pixels * sizeof(float));
 
-  free(h_ds);
-  free(h_depth);
 
+  a_c = load_bin_files(image_path, &a_c, sizeof(float), num_pixels);
+  std::cout << ds << std::endl;
+  std::cout << a_c << std::endl;
+  //a_c = getCUDAMem(&a_c, &ds, num_pixels);
+
+  depth = load_bin_files(depth_path,&depth, sizeof(float), width * height); //should be image_size/3 but i'll handle that later
+  
   float *h_out = (float*)malloc(num_pixels * sizeof(float));
+  cudaMalloc(&d_out, num_pixels * sizeof(float));
   
   // //Debug: Intended to softly check to make sure the data is loading in correctly
   // cudaMemcpy(h_out, a_c, num_pixels * sizeof(double), cudaMemcpyDeviceToHost);
