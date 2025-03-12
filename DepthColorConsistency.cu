@@ -6,7 +6,7 @@
 #include "cublas_v2.h"
 
 #define IN_TILE_WIDTH 32   
-#define KERNEL_SIZE 10      
+#define KERNEL_SIZE 1      
 #define OUT_TILE_WIDTH (IN_TILE_WIDTH - 2 * KERNEL_SIZE)  
 //https://developer.nvidia.com/blog/even-easier-introduction-cuda/
 //This is frist for setting my my enviroment correctly
@@ -42,7 +42,7 @@ void depthwiseColorConsistency(
   //Prep for tiling both depth and ds to preprocess some data
   // Tiled Convolution implmenetation based on 
   // Programming Massively Parallel Processors
-  __shared__ double ds_tile[IN_TILE_WIDTH][IN_TILE_WIDTH][3];
+  __shared__ float ds_tile[IN_TILE_WIDTH][IN_TILE_WIDTH][3];
   __shared__ float depth_tile[IN_TILE_WIDTH][IN_TILE_WIDTH];
 
   int col = blockIdx.x * OUT_TILE_WIDTH + threadIdx.x - KERNEL_SIZE;
@@ -64,8 +64,8 @@ void depthwiseColorConsistency(
 
   int x = threadIdx.x;
   int y = threadIdx.y;
-  double eps = 10;  
-  double exp_sum = 0;  
+  float eps = 10;  
+  float exp_sum = 0;  
   
   
   if (row>=0 && row < height && col >= 0 && col < width) {
@@ -88,7 +88,7 @@ void depthwiseColorConsistency(
 
       // Apply avging to each color channels
       for (int c = 0; c < channels; c++) {  
-        double avg_color = 0;                  
+        float avg_color = 0;                  
         
         //convolution here
         for (int i = -KERNEL_SIZE; i <= KERNEL_SIZE; i++) {
@@ -100,7 +100,7 @@ void depthwiseColorConsistency(
             if (ny>=0 && ny < height && nx >= 0 && nx < width) {
               if (nx >= 0 && nx < IN_TILE_WIDTH && ny >= 0 && ny < IN_TILE_WIDTH) {                      
                 //weight of the softmax by the color
-                double softmax_weight =  expf(-abs(depth_tile[ny][nx] - depth_tile[y][x]) - eps)/exp_sum;
+                float softmax_weight =  expf(-abs(depth_tile[ny][nx] - depth_tile[y][x]) - eps)/exp_sum;
                 avg_color += softmax_weight *  ds_tile[ny][nx][c]; 
               }        
             }    
@@ -156,7 +156,7 @@ int main(void)
   // image parameters
  //number of pixels * number of channels
 
-  int iterations = 2000;
+  int iterations = 500;
   double alpha = 0.99f;
   double beta = 1.f - alpha;
 
