@@ -49,7 +49,6 @@ __global__ void softmaxDepthAdverging(
     {
         if (x >= KERNEL_SIZE && x <= OUT_TILE_WIDTH + KERNEL_SIZE && y >= KERNEL_SIZE && y <= OUT_TILE_WIDTH + KERNEL_SIZE)
         {
-            // TODO: Find better defintion for softmax
             //  compute denom for softmax
             for (int i = -KERNEL_SIZE; i <= KERNEL_SIZE; i++)
             { // TODO generalize this
@@ -101,7 +100,8 @@ __global__ void softmaxDepthAdverging(
     }
 }
 
-float *depthwiseColorConsistency(int iterations, int image_width,
+extern "C"
+float *depthwiseColorConsistency(size_t iterations, int image_width,
                                  int image_height, int image_num_channels,
                                  float alpha, float *h_depth_map_ptr,
                                  float *h_image_ptr)
@@ -168,9 +168,5 @@ float *depthwiseColorConsistency(int iterations, int image_width,
     cudaFree(d_depth_map_ptr);
     cudaFree(d_temp_ptr);
     cudaFree(d_a_c_ptr);
-
-
-
-    printf("End Depthwise Color Consistency\n");
     return h_out;
 }

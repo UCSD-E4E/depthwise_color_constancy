@@ -1,0 +1,7 @@
+[package]
+name = "depthwise_color_consistency"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+cc = "1.2.16"
