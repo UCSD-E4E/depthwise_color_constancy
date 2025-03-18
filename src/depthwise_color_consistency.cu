@@ -1,5 +1,6 @@
 #include <cuda_runtime.h>
 #include "cublas_v2.h"
+#include <iostream>
 
 #define IN_TILE_WIDTH 32
 #define KERNEL_SIZE 1
@@ -167,5 +168,9 @@ float *depthwiseColorConsistency(int iterations, int image_width,
     cudaFree(d_depth_map_ptr);
     cudaFree(d_temp_ptr);
     cudaFree(d_a_c_ptr);
+
+
+
+    printf("End Depthwise Color Consistency\n");
     return h_out;
 }

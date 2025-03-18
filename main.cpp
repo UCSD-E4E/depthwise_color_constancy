@@ -30,9 +30,9 @@ int main(void)
     int height = 480;
     int channels = 3; // Ideally RGB for now
     int num_pixels = width * height * channels;
-    char *image_path = "data/realsense_tests/living_room_0046b_out_1-color.bin";
-    char *depth_path = "data/realsense_tests/living_room_0046b_out_1-depth.bin";
-    char *output_path = "data/realsense_tests/living_room_0046b_out_1-lim.bin";
+    char *image_path = "../data/realsense_tests/living_room_0046b_out_1-color.bin";
+    char *depth_path = "../data/realsense_tests/living_room_0046b_out_1-depth.bin";
+    char *output_path = "../data/realsense_tests/living_room_0046b_out_1-lim.bin";
 
     // Init Memory
     float *depth, *ds;
@@ -49,10 +49,10 @@ int main(void)
         ds);
 
     FILE *out_f = fopen(output_path, "wb");
-    //   fwrite(h_out, sizeof(float), num_pixels, out_f);
+    fwrite(h_out, sizeof(float), num_pixels, out_f);
     fclose(out_f);
 
-    //   free(h_out);
+    free(h_out);
     free(ds);
     free(depth);
 
