@@ -1,8 +1,23 @@
 use std::path::Path;
 
+#[cfg(target_os = "linux")]
+fn check_cuda() -> bool {
+    return Path::new("/usr/local/cuda").exists();
+}
+
+#[cfg(target_os = "windows")]
+fn check_cuda() -> bool {
+    return Path::new("/usr/local/cuda").exists();
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "windows")))]
+fn check_cuda() -> bool {
+    return false;
+}
+
 fn build_cuda() {
     // Check if CUDA is installed
-    if !Path::new("/usr/local/cuda").exists() {
+    if !check_cuda() {
         return; // CUDA is not installed
     }
 
