@@ -12,6 +12,3 @@ crate-type = ["cdylib"]
 pyo3 = { version = "0.24.0", features = ["extension-module"] }
 depthwise_color_consistency = { workspace = true }
 numpy = "0.24.0"
-
-[target.'cfg(windows)'.dependencies]
-winreg = "0.55.0"

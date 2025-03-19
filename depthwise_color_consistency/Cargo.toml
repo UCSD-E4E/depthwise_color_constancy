@@ -10,5 +10,8 @@ ndarray = "0.16.1"
 bindgen = "0.71.1"
 cc = "1.2.16"
 
+[target.'cfg(windows)'.build-dependencies]
+winreg = "0.55.0"
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(cuda)'] }
