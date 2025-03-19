@@ -158,6 +158,7 @@ void depthwiseColorConsistency(unsigned int iterations, int image_width,
     cudaDeviceSynchronize();
 
     // write the output for the new lim to test out!
+    // We expect the output to be the same size as the input.
     cudaMemcpy(h_out, d_a_c_ptr, num_pixels * sizeof(float),
                cudaMemcpyDeviceToHost);
 
