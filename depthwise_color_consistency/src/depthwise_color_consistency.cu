@@ -100,11 +100,10 @@ __global__ void softmaxDepthAdverging(
     }
 }
 
-extern "C"
-void depthwiseColorConsistency(unsigned int iterations, int image_width,
-                                 int image_height, int image_num_channels,
-                                 float alpha, const float *h_depth_map_ptr,
-                                 const float *h_image_ptr, float* h_out)
+extern "C" void depthwiseColorConsistency(unsigned int iterations, unsigned int image_width,
+                                          unsigned int image_height, unsigned int image_num_channels,
+                                          float alpha, const float *h_depth_map_ptr,
+                                          const float *h_image_ptr, float *h_out)
 {
     float *d_depth_map_ptr, *d_in_image_ptr, *d_temp_ptr, *d_a_c_ptr;
     float beta = 1.f - alpha;

@@ -3,9 +3,9 @@
 unsafe extern "C" {
     pub fn depthwiseColorConsistency(
         iterations: ::std::os::raw::c_uint,
-        image_width: ::std::os::raw::c_int,
-        image_height: ::std::os::raw::c_int,
-        image_num_channels: ::std::os::raw::c_int,
+        image_width: ::std::os::raw::c_uint,
+        image_height: ::std::os::raw::c_uint,
+        image_num_channels: ::std::os::raw::c_uint,
         alpha: f32,
         h_depth_map_ptr: *const f32,
         h_image_ptr: *const f32,
