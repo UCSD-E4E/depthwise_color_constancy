@@ -101,10 +101,10 @@ __global__ void softmaxDepthAdverging(
 }
 
 extern "C"
-float *depthwiseColorConsistency(size_t iterations, int image_width,
+void depthwiseColorConsistency(unsigned int iterations, int image_width,
                                  int image_height, int image_num_channels,
-                                 float alpha, float *h_depth_map_ptr,
-                                 float *h_image_ptr)
+                                 float alpha, const float *h_depth_map_ptr,
+                                 const float *h_image_ptr, float* h_out)
 {
     float *d_depth_map_ptr, *d_in_image_ptr, *d_temp_ptr, *d_a_c_ptr;
     float beta = 1.f - alpha;
@@ -140,7 +140,7 @@ float *depthwiseColorConsistency(size_t iterations, int image_width,
     cublasCreate(&handle);
 
     // Conduct Depthwise Operation
-    for (size_t i = 0; i < iterations; i++)
+    for (unsigned int i = 0; i < iterations; i++)
     {
         softmaxDepthAdverging<<<dimGrid, dimBlock>>>(
             d_a_c_ptr, d_temp_ptr, d_depth_map_ptr, image_width, image_height,
@@ -158,7 +158,6 @@ float *depthwiseColorConsistency(size_t iterations, int image_width,
     cudaDeviceSynchronize();
 
     // write the output for the new lim to test out!
-    float *h_out = (float *)malloc(num_pixels * sizeof(float));
     cudaMemcpy(h_out, d_a_c_ptr, num_pixels * sizeof(float),
                cudaMemcpyDeviceToHost);
 
@@ -168,5 +167,4 @@ float *depthwiseColorConsistency(size_t iterations, int image_width,
     cudaFree(d_depth_map_ptr);
     cudaFree(d_temp_ptr);
     cudaFree(d_a_c_ptr);
-    return h_out;
 }

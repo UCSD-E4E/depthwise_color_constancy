@@ -1,14 +1,33 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+use ndarray::Array2;
+use ndarray::Array3;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod depthwise_color_consistency;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+#[cfg(cuda)]
+pub fn depthwise_color_consistency(
+    iterations: u32,
+    image_width: i32,
+    image_height: i32,
+    image_num_channels: i32,
+    alpha: f32,
+    h_depth_map: Array2<f32>,
+    h_image: Array3<f32>) -> Array3<f32> {
+        let h_depth_map_ptr = h_depth_map.as_ptr();
+        let h_image_ptr = h_image.as_ptr();
+        let mut h_out = Array3::<f32>::zeros(h_image.dim());
+
+        unsafe {
+            depthwise_color_consistency::depthwiseColorConsistency(
+                iterations,
+                image_width,
+                image_height,
+                image_num_channels,
+                alpha,
+                h_depth_map_ptr,
+                h_image_ptr,
+                h_out.as_mut_ptr(),
+            );
+        }
+
+        return h_out;
 }
