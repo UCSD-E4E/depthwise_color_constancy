@@ -31,7 +31,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "depthwise-color-consistency", directory = "py-depthwise_color_consistency" },
+    { name = "depthwise-color-consistency", directory = "../py-depthwise_color_consistency" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "matplotlib", specifier = ">=3.10.1" },
     { name = "numpy", specifier = ">=2.2.3" },
@@ -219,7 +219,7 @@ wheels = [
 
 [[package]]
 name = "depthwise-color-consistency"
-source = { directory = "py-depthwise_color_consistency" }
+source = { directory = "../py-depthwise_color_consistency" }
 
 [[package]]
 name = "executing"

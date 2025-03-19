@@ -25,4 +25,4 @@ explicit = true
 torch = [
   { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-depthwise-color-consistency = { path = "py-depthwise_color_consistency" }
+depthwise-color-consistency = { path = "../py-depthwise_color_consistency" }
