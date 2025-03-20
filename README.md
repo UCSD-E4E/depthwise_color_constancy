@@ -15,3 +15,4 @@ TODO
 - Fix bugs
 - Cublas
 - Matrix Mutliply Convole
+- Fix readme

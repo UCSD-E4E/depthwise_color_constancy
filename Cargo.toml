@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = [
+  "depthwise_color_consistency",
+  "py-depthwise_color_consistency"
+]
+default-members = [
+  "depthwise_color_consistency",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+depthwise_color_consistency = { version = "0.1.0", path = "depthwise_color_consistency", default-features = false }
