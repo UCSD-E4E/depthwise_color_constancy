@@ -40,7 +40,7 @@ mod tests {
         let h_img = Array3::<f32>::ones((480, 600, 3));
         let h_depth = Array2::<f32>::zeros((480, 600));
 
-        let h_out = depthwise_color_constancy(100, 0,&h_depth, &h_img);
+        let h_out = depthwise_color_constancy(100, 0f32, &h_depth, &h_img);
         
         assert_eq!(h_img, h_out);
     }
