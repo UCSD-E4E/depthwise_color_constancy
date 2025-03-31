@@ -3,7 +3,7 @@ requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "depthwise_color_consistency"
+name = "depthwise_color_constancy"
 requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Rust",

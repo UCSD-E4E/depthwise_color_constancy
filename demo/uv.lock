@@ -17,7 +17,7 @@ name = "accleration-testing"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "depthwise-color-consistency" },
+    { name = "depthwise-color-constancy" },
     { name = "ipykernel" },
     { name = "matplotlib" },
     { name = "numpy" },
@@ -31,7 +31,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "depthwise-color-consistency", directory = "../py-depthwise_color_consistency" },
+    { name = "depthwise-color-constancy", directory = "../py-depthwise_color_constancy" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "matplotlib", specifier = ">=3.10.1" },
     { name = "numpy", specifier = ">=2.2.3" },
@@ -218,8 +218,8 @@ wheels = [
 ]
 
 [[package]]
-name = "depthwise-color-consistency"
-source = { directory = "../py-depthwise_color_consistency" }
+name = "depthwise-color-constancy"
+source = { directory = "../py-depthwise_color_constancy" }
 
 [[package]]
 name = "executing"

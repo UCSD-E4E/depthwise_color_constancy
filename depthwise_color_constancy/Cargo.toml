@@ -1,5 +1,5 @@
 [package]
-name = "depthwise_color_consistency"
+name = "depthwise_color_constancy"
 version = "0.1.0"
 edition = "2021"
 

@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "depthwise-color-consistency",
+    "depthwise-color-constancy",
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.1",
     "numpy>=2.2.3",
@@ -25,4 +25,4 @@ explicit = true
 torch = [
   { index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
-depthwise-color-consistency = { path = "../py-depthwise_color_consistency" }
+depthwise-color-constancy = { path = "../py-depthwise_color_constancy" }

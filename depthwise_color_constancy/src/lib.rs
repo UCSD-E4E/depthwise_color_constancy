@@ -2,10 +2,10 @@ use ndarray::Array2;
 use ndarray::Array3;
 
 #[cfg(cuda)]
-mod depthwise_color_consistency;
+mod depthwise_color_constancy;
 
 #[cfg(cuda)]
-pub fn depthwise_color_consistency(
+pub fn depthwise_color_constancy(
     iterations: u32,
     alpha: f32,
     h_depth_map: &Array2<f32>,
@@ -16,7 +16,7 @@ pub fn depthwise_color_consistency(
         let mut h_out = Array3::<f32>::zeros(h_image.dim());
 
         unsafe {
-            depthwise_color_consistency::depthwiseColorConsistency(
+            depthwise_color_constancy::depthwiseColorConstancy(
                 iterations,
                 image_width as u32,
                 image_height as u32,
@@ -36,11 +36,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn depthwise_color_consistency_test() {
+    fn depthwise_color_constancy_test() {
         let h_img = Array3::<f32>::ones((480, 600, 3));
         let h_depth = Array2::<f32>::zeros((480, 600));
 
-        let h_out = depthwise_color_consistency(100, 0,&h_depth, &h_img);
+        let h_out = depthwise_color_constancy(100, 0,&h_depth, &h_img);
         
         assert_eq!(h_img, h_out);
     }

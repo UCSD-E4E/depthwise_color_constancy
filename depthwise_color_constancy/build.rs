@@ -43,22 +43,22 @@ fn build_cuda() {
     //todo windows linking for cublas
     println!("cargo::rustc-link-lib=cublas");
     println!("cargo::rustc-cfg=cuda");
-    println!("cargo::rerun-if-changed=src/depthwise_color_consistency.cu");
-    println!("cargo::rerun-if-changed=include/depthwise_color_consistency.hpp");
+    println!("cargo::rerun-if-changed=src/depthwise_color_constancy.cu");
+    println!("cargo::rerun-if-changed=include/depthwise_color_constancy.hpp");
 
     // Compile CUDA code
     cc::Build::new()
         .cuda(true)
         .cudart("static")
-        .file("src/depthwise_color_consistency.cu")
-        .compile("depthwise_color_consistency");
+        .file("src/depthwise_color_constancy.cu")
+        .compile("depthwise_color_constancy");
 
     bindgen::Builder::default()
-        .header("include/depthwise_color_consistency.hpp")
+        .header("include/depthwise_color_constancy.hpp")
         .clang_arg("-I/usr/local/cuda/include")
         .generate()
         .expect("Unable to generate bindings")
-        .write_to_file("src/depthwise_color_consistency.rs")
+        .write_to_file("src/depthwise_color_constancy.rs")
         .expect("Unable to write bindings");
 }
 

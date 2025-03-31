@@ -102,4 +102,4 @@ Cargo.lock
 *.bin
 data/
 
-depthwise_color_consistency/src/depthwise_color_consistency.rs
+depthwise_color_constancy/src/depthwise_color_constancy.rs
