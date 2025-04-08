@@ -6,15 +6,22 @@ fn depthwise_color_constancy_python<'py>(
     py: Python<'py>,
     iterations: u32,
     alpha: f32,
+    doesNaive: bool,
+    threshold: f32,
     h_depth_map: PyReadonlyArray2<'py, f32>,
+    h_kernal_shape: PyReadonlyArray2<'py, f32>,
     h_image: PyReadonlyArray3<'py, f32>,
 ) -> PyResult<Bound<'py, PyArray3<f32>>> {
     let h_depth_map = h_depth_map.as_array().mapv(|x| x);
+    let h_kernal_shape = h_kernal_shape.as_array().mapv(|x| x);
     let h_image = h_image.as_array().mapv(|x| x);
     let h_out = depthwise_color_constancy::depthwise_color_constancy(
         iterations,
         alpha,
+        doesNaive,
+        threshold,
         &h_depth_map,
+        &h_kernal_shape,
         &h_image,
     );
 
