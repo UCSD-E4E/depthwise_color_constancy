@@ -100,6 +100,7 @@ Cargo.lock
 # End of https://www.toptal.com/developers/gitignore/api/cuda,c++,cmake,visualstudiocode,rust
 
 *.bin
+*.png
 data/
 
 depthwise_color_constancy/src/depthwise_color_constancy.rs
