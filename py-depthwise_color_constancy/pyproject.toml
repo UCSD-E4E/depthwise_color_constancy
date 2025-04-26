@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "depthwise_color_constancy"
 requires-python = ">=3.11"
-version = "0.2.0"
+version = "0.2.9"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",

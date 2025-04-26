@@ -27,7 +27,7 @@ __global__ void softmaxDepthAdverging(
     int col = blockIdx.x * OUT_TILE_WIDTH + threadIdx.x - kernel_size;
     int row = blockIdx.y * OUT_TILE_WIDTH + threadIdx.y - kernel_size;
     int pixel_idx = (row * width + col) * channels;
-    if (row >= 0 && row < height && col >= 0 && col < width)
+    if (row >= 0 && row <= height && col >= 0 && col <= width)
     {
         depth_tile[threadIdx.y][threadIdx.x] = depth[row * width + col];
         ds_tile[threadIdx.y][threadIdx.x][0] = ds[pixel_idx];
@@ -49,7 +49,7 @@ __global__ void softmaxDepthAdverging(
     float eps = 10;
     float exp_sum = 0;
 
-    if (row >= 0 && row < height && col >= 0 && col < width)
+    if (row >= 0 && row <= height && col >= 0 && col <= width)
     {
         if (x >= kernel_size && x <= OUT_TILE_WIDTH + kernel_size && y >= kernel_size && y <= OUT_TILE_WIDTH + kernel_size)
         {
@@ -60,7 +60,7 @@ __global__ void softmaxDepthAdverging(
                 { // like with a footprint sys
                     int nx = x + j;
                     int ny = y + i;
-                    if (ny >= 0 && ny < height && nx >= 0 && nx < width)
+                    if (ny >= 0 && ny <= height && nx >= 0 && nx <= width)
                     {
                         if (nx >= 0 && nx < IN_TILE_WIDTH && ny >= 0 && ny < IN_TILE_WIDTH)
                         {
@@ -88,7 +88,7 @@ __global__ void softmaxDepthAdverging(
                         int ny = y + i;
 
                         // $\sum_{n \in N} softmax(n) * color(n)
-                        if (ny >= 0 && ny < height && nx >= 0 && nx < width)
+                        if (ny >= 0 && ny <= height && nx >= 0 && nx <= width)
                         {
                             if (nx >= 0 && nx < IN_TILE_WIDTH && ny >= 0 && ny < IN_TILE_WIDTH)
                             {
@@ -164,7 +164,7 @@ __global__ void NaiveAdverging(
                 { // like with a footprint sys
                     int nx = x + j;
                     int ny = y + i;
-                    if (ny >= 0 && ny < height && nx >= 0 && nx < width)
+                    if (ny >= 0 && ny <= height && nx >= 0 && nx <= width)
                     {
                         if (nx >= 0 && nx < IN_TILE_WIDTH && ny >= 0 && ny < IN_TILE_WIDTH)
                         {
@@ -192,7 +192,7 @@ __global__ void NaiveAdverging(
                         int ny = y + i;
 
                         // $\sum_{n \in N} softmax(n) * color(n)
-                        if (ny >= 0 && ny < height && nx >= 0 && nx < width)
+                        if (ny >= 0 && ny <= height && nx >= 0 && nx <= width)
                         {
                             if (nx >= 0 && nx < IN_TILE_WIDTH && ny >= 0 && ny < IN_TILE_WIDTH)
                             {
@@ -253,8 +253,10 @@ extern "C" void depthwiseColorConstancy(unsigned int iterations, unsigned int im
 
     // +10 is a workaround for this missing a column
     // TODO fix this workaround
-    dim3 dimGrid(ceil((image_width + IN_TILE_WIDTH) / IN_TILE_WIDTH) + 10,
-                 ceil((image_height + IN_TILE_WIDTH) / IN_TILE_WIDTH) + 10);
+    dim3 dimGrid(
+        ceil(float(image_width) / IN_TILE_WIDTH) + 1,
+        ceil(float(image_height) / IN_TILE_WIDTH) + 1
+    );
     dim3 dimBlock(IN_TILE_WIDTH, IN_TILE_WIDTH);
 
     // cublas handlers
