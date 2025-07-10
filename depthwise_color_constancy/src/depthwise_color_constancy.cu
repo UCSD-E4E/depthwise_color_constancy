@@ -128,10 +128,9 @@ extern "C" void depthwiseColorConstancy(unsigned int iterations, unsigned int im
     // temp image for holding raw illumiant map
     cudaMalloc(&d_temp_ptr, num_pixels * sizeof(float));
 
-    // +10 is a workaround for this missing a column
-    // TODO fix this workaround
-    dim3 dimGrid(ceil((image_width + IN_TILE_WIDTH) / IN_TILE_WIDTH) + 10,
-                 ceil((image_height + IN_TILE_WIDTH) / IN_TILE_WIDTH) + 10);
+    // add one less than the full kernel size then round down
+    dim3 dimGrid(floor((image_width + OUT_TILE_WIDTH - 1) / OUT_TILE_WIDTH),
+             floor((image_height + OUT_TILE_WIDTH - 1) / OUT_TILE_WIDTH));
     dim3 dimBlock(IN_TILE_WIDTH, IN_TILE_WIDTH);
 
     // cublas handlers
